@@ -1,5 +1,6 @@
+import json
 import uvicorn as uvicorn
-from fastapi import FastAPI
+from fastapi import Body, FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 import pandas as pd
@@ -9,6 +10,8 @@ from numpy import log as ln
 from tensorflow.python.keras.layers import Dense, LSTM
 from tensorflow.python.keras.models import Sequential
 from sklearn.preprocessing import MinMaxScaler
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
 origins = ["*"]
@@ -76,8 +79,8 @@ async def get_tickers():
             'BAC': 'Финансы'}
 
 
-@app.get('/evaluate')
-async def evaluate(ticker: str, start_date: str, n_forecast: int):
+@app.post('/evaluate')
+async def evaluate(ticker: str=Body(...),start_date: str=Body(...), n_forecast: int=Body(...)):
     end_date = "2022-01-01"
     pd.options.mode.chained_assignment = None
     tf.random.set_seed(0)
@@ -145,7 +148,8 @@ async def evaluate(ticker: str, start_date: str, n_forecast: int):
     results = pd.concat([df_past, df_future], ignore_index=True)
     print(results.tail(30))
     results['Date'] = results['Date'].dt.strftime('%Y-%m-%d')
-    return results.to_json(orient="records")
+    
+    return Response(results.to_json(orient="records"), media_type="application/json")
 
 
 if __name__ == '__main__':
